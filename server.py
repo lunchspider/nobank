@@ -1,33 +1,51 @@
 import socket
+import sys
 import threading
 import socketserver
 import mysql.connector
 
+conndb = mysql.connector.connect(
+   host = "localhost",
+   user = "lunchspider",
+   password = "archi",
+   database = "nobank"
+)
+cursor = conndb.cursor()
+
+
+
 class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
-        data = str(self.request.recv(1024), 'ascii')
-        cur_thread = threading.current_thread()
-        response = bytes("{}: {}".format(cur_thread.name, data), 'ascii')
-        self.request.sendall(response)
+        query = str(self.request.recv(1024), "utf-8").split("\n")
+        print(query)
+        username,passwd,task = query
+        if(task == "2"):
+            # checking the balance of a account
+            query = """SELECT balance FROM accounts 
+            WHERE username=%s and password=%s"""
+            cursor.execute(query,(username,passwd))
+            balance = cursor.fetchall()
+            if len(balance) == 0 :
+                self.request.sendall(bytes("error 404","utf-8"))
+            else :
+                self.request.sendall(bytes(str(balance[0][0]), "utf-8"))
+            return 
+        if(task == "4"):
+            pass
+
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
 
-def client(ip, port, message):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.connect((ip, port))
-        sock.sendall(bytes(message, 'ascii'))
-        response = str(sock.recv(1024), 'ascii')
-        print("Received: {}".format(response))
-
 if __name__ == "__main__":
     # Port 0 means to select an arbitrary unused port
-    HOST, PORT = "localhost", 9999
+    HOST, PORT = "localhost", 0
 
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
     with server:
         ip, port = server.server_address
+        print(ip,port)
 
         # Start a thread with the server -- that thread will then start one
         # more thread for each request
