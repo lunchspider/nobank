@@ -33,7 +33,10 @@ def main(task:int):
             print("Available balance is : ",balance)
 
         if task == 4:
-            pass
+            inc_balance = int(input("Enter the amount you want to add:"))
+            if(inc_balance < 1):
+                raise TypeError("Error : Wrong Value: ",inc_balance)
+            sock.sendall(bytes(str(inc_balance),"utf-8"))
 
 
 

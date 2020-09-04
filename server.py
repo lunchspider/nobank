@@ -18,22 +18,27 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
         query = str(self.request.recv(1024), "utf-8").split("\n")
-        print(query)
         username,passwd,task = query
         if(task == "2"):
             # checking the balance of a account
-            query = """SELECT balance FROM accounts 
+            sql_query = """SELECT balance FROM accounts 
             WHERE username=%s and password=%s"""
-            cursor.execute(query,(username,passwd))
+            cursor.execute(sql_query,(username,passwd))
             balance = cursor.fetchall()
             if len(balance) == 0 :
                 self.request.sendall(bytes("error 404","utf-8"))
             else :
                 self.request.sendall(bytes(str(balance[0][0]), "utf-8"))
-            return 
+            return None 
         if(task == "4"):
-            pass
-
+            amount = str(self.request.recv(1024),"utf-8")
+            sql_query = """UPDATE accounts
+            SET balance = balance + %s
+            WHERE username = %s and password = %s
+            """
+            cursor.execute(sql_query,( amount, username, passwd))
+            conndb.commit()
+            return None
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
