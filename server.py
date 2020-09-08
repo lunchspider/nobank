@@ -10,7 +10,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         conndb = mysql.connector.connect(
             host = "localhost",
             user = "lunchspider",
-            password = "archi",
+            password = "passwd",
             database = "nobank"
             )
         cursor = conndb.cursor()
@@ -75,7 +75,6 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 if __name__ == "__main__":
     # Port 0 means to select an arbitrary unused port
     HOST, PORT = "localhost", 0
-
     server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
     with server:
         ip, port = server.server_address
