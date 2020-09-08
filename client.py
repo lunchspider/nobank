@@ -1,7 +1,7 @@
 import socket
 import sys
 
-HOST, PORT = "localhost", 54929
+HOST, PORT = "localhost", 0
 
 username = ''
 passwd = ''
@@ -26,18 +26,34 @@ def main(task:int):
         string = username + "\n" + passwd + "\n" + str(task)
         #sending all the queries in a string of size 1024 bytes lenght
         sock.sendall(bytes(string, "utf-8"))
+
+        everything_ok = str(sock.recv(1024), "utf-8")
+        if(everything_ok == "error 404"):
+            raise NameError("Given username and/or password is wrong.")
+
         if task == 2:
+            #checking balance
             balance = str(sock.recv(1024),"utf-8")
-            if(balance == "error 404"):
-                raise NameError("Given username and/or password is wrong.")
             print("Available balance is : ",balance)
+            return None
+        
+        if task == 1:
+            #sending money to other person
+            sendto = input("Username of the person you want to send money to:")
+            amount = int(input("The amount you want to send"))
+            if(amount < 0):
+                raise TypeError(f"Cannot send {amount}! Wrong value. ")
+            sock.sendall(bytes(sendto + "\n" + str(amount) , "utf-8"))
+            print(str(sock.recv(1024),"utf-8"))
+
 
         if task == 4:
+            #adding money to the bank
             inc_balance = int(input("Enter the amount you want to add:"))
             if(inc_balance < 1):
                 raise TypeError("Error : Wrong Value: ",inc_balance)
             sock.sendall(bytes(str(inc_balance),"utf-8"))
-
+            return None
 
 
 
