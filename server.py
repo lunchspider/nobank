@@ -10,14 +10,32 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         conndb = mysql.connector.connect(
             host = "localhost",
             user = "lunchspider",
-            password = "passwd",
+            password = "archi",
             database = "nobank"
             )
         cursor = conndb.cursor()
+        conn = str(self.request.recv(1024), "utf-8").split("\n")
+        username,passwd,task = conn
+        if (task == "0"):
+            #creating account
+            sql_query = """SELECT *  FROM accounts WHERE username=%s"""
+            cursor.execute(sql_query,(username,))
+            return_query = cursor.fetchall()
+            #checking if username and password are correct
+            if len(return_query) == 1 :
+                #if username is present in the server
+                self.request.sendall(bytes("username found","utf-8"))
+                return None
+            self.request.sendall(bytes("ok","utf-8"))
+            userinfo = str(self.request.recv(1024), "utf-8").split("\n")
+            sql_query = """INSERT INTO accounts(username, password, first_name,
+            last_name, phone_number, address)
+            VALUES (%s, %s, %s, %s, %s, %s)"""
+            print(userinfo)
+            cursor.execute(sql_query, tuple(userinfo))
+            conndb.commit()
+            return None
 
-
-        query = str(self.request.recv(1024), "utf-8").split("\n")
-        username,passwd,task = query
         sql_query = """SELECT *  FROM accounts
         WHERE username=%s AND password=%s"""
         cursor.execute(sql_query,(username,passwd))
