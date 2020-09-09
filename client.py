@@ -40,6 +40,7 @@ if(sys.argv[3] == "--createaccount"):
         userinfo = username + "\n" + passwd + "\n" + first_name + "\n"
         userinfo += last_name + "\n" + phonenum + "\n" + address
         sock.sendall(bytes(userinfo ,"utf-8"))
+        sys.exit()
 
 username = ''
 passwd = getpass.getpass()
