@@ -1,6 +1,8 @@
 import socket
+import os
 import sys
 import getpass
+from datetime import datetime
 
 HOST, PORT = "localhost", 0
 if(sys.argv[1] == "--help" ):
@@ -17,6 +19,22 @@ HOST     = HOST.split(":")
 PORT     = int(HOST[1])
 HOST     = HOST[0]
 
+def send(sock : socket.socket, data : str) -> None:
+    data = bytes(data , "utf-8")
+    #sending the size of the data
+    lenofdata = str(len(data))
+    # converting the lenofdata into exact 20 bytes
+    lenofdata = (20 - len(lenofdata)) * "0" + lenofdata
+    lenofdata = bytes(lenofdata , "utf-8")
+    sock.sendall(lenofdata)
+    print(lenofdata)
+    sock.sendall(data)
+
+def recieve(sock : socket.socket) -> str:
+    # 20 bytes is enough to represent the lenght of the data
+    lenofdata = int(str(sock.recv(20), "utf-8"))
+    return str(sock.recv(lenofdata), "utf-8")
+
 if(sys.argv[3] == "--createaccount"):
     first_name = input("Enter the first name of the account holder: ")
     last_name  = input("Enter the last name of the account holder: ")
@@ -28,8 +46,8 @@ if(sys.argv[3] == "--createaccount"):
         while(True):
             #iterating till user give a unique username
             string = username + "\n" + passwd + "\n" + str(0)
-            sock.sendall(bytes(string, "utf-8"))
-            if(str(sock.recv(100),"utf-8")== "username found"):
+            send(sock, string)
+            if(recieve(sock) == "username found"):
                 print("Username found try something else.")
                 username = input("Enter username(it should be unique):")
             else:
@@ -39,7 +57,11 @@ if(sys.argv[3] == "--createaccount"):
         passwd   = getpass.getpass()
         userinfo = username + "\n" + passwd + "\n" + first_name + "\n"
         userinfo += last_name + "\n" + phonenum + "\n" + address
+<<<<<<< HEAD
         sock.sendall(bytes(userinfo ,"utf-8"))
+=======
+        send(sock, userinfo)
+>>>>>>> dev-branch
         sys.exit()
 
 username = ''
@@ -60,15 +82,15 @@ def main(task:int):
         sock.connect((HOST, PORT))
         string = username + "\n" + passwd + "\n" + str(task)
         #sending all the queries in a string of size 1024 bytes lenght
-        sock.sendall(bytes(string, "utf-8"))
+        send(sock, string)
 
-        everything_ok = str(sock.recv(1024), "utf-8")
+        everything_ok = recieve(sock)
         if(everything_ok == "error 404"):
             raise NameError("Given username and/or password is wrong.")
 
         if task == 2:
             #checking balance
-            balance = str(sock.recv(1024),"utf-8")
+            balance = recieve(sock)
             print("Available balance is : ",balance)
             return None
         
@@ -78,8 +100,8 @@ def main(task:int):
             amount = int(input("The amount you want to send:"))
             if(amount < 0):
                 raise TypeError(f"Cannot send {amount}! Wrong value. ")
-            sock.sendall(bytes(sendto + "\n" + str(amount) , "utf-8"))
-            print(str(sock.recv(1024),"utf-8"))
+            send(sock , sendto + "\n" + str(amount))
+            print(recieve(sock))
 
 
         if task == 4:
@@ -87,19 +109,19 @@ def main(task:int):
             inc_balance = int(input("Enter the amount you want to add:"))
             if(inc_balance < 1):
                 raise TypeError("Error : Wrong Value: ",inc_balance)
-            sock.sendall(bytes(str(inc_balance),"utf-8"))
+            send(sock, str(inc_balance))
             return None
 
 
 
 if __name__ == "__main__":
-    print("Logging in...")
-    print("Username :",username)
-    while(True):
+    while(True): 
+        print("Username :",username)
         print("1. Send Money \n2. See Balance\n3. Last Transction")
         print("4. Add Money\n5. Quit")
         response = int(input("Choose a number : "))
         if(response == 5):
             break
+        os.system("clear")
         main(response)
-
+   
