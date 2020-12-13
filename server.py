@@ -61,9 +61,10 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         WHERE username=%s AND password=%s"""
         cursor.execute(sql_query,(username,passwd))
         return_query = cursor.fetchall()
-        print(return_query)
         #checking if username and password are correct
-        if len(return_query) == 0 :
+        # since if username or password are incorrect the result will be a 
+        # empty list
+        if not return_query:
             self.send("error 404")
             return None
         
