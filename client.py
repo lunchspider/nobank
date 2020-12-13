@@ -27,7 +27,6 @@ def send(sock : socket.socket, data : str) -> None:
     lenofdata = (20 - len(lenofdata)) * "0" + lenofdata
     lenofdata = bytes(lenofdata , "utf-8")
     sock.sendall(lenofdata)
-    print(lenofdata)
     sock.sendall(data)
 
 def recieve(sock : socket.socket) -> str:
@@ -57,11 +56,7 @@ if(sys.argv[3] == "--createaccount"):
         passwd   = getpass.getpass()
         userinfo = username + "\n" + passwd + "\n" + first_name + "\n"
         userinfo += last_name + "\n" + phonenum + "\n" + address
-<<<<<<< HEAD
-        sock.sendall(bytes(userinfo ,"utf-8"))
-=======
         send(sock, userinfo)
->>>>>>> dev-branch
         sys.exit()
 
 username = ''
