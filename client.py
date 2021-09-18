@@ -5,6 +5,11 @@ import getpass
 from datetime import datetime
 
 HOST, PORT = "localhost", 0
+
+if(len(sys.argv) == 1) :
+    # that is if no arguments are given
+    raise TypeError("No arguments were given. Try adding --help in the end.")
+
 if(sys.argv[1] == "--help" ):
     help_string = """Client.py is the client program for nobank.
 if you have a account:

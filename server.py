@@ -1,10 +1,13 @@
+#!/usr/bin/python3
+# author Aman Sharm
 import socket
 import sys
 import threading
 import socketserver
+import sys
 import mysql.connector
 
-class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
+class ClientHandler(socketserver.BaseRequestHandler):
     def send(self, data : str) -> None:
         data = bytes(data , "utf-8")
         #sending the size of the data
@@ -17,19 +20,17 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
 
     def recieve(self) -> str:
         lenofdata = int(str(self.request.recv(20), "utf-8"))
-        print(lenofdata)
         return str(self.request.recv(lenofdata), "utf-8")
 
     def handle(self):
         conndb = mysql.connector.connect(
-            host = "localhost",
-            user = "lunchspider",
-            password = "archi",
-            database = "nobank"
-            )
+                host = "localhost",
+                user = "lunchspider",
+                password = "archi",
+                database = "nobank"
+                )
         cursor = conndb.cursor()
         conn = self.recieve().split("\n")
-        print(conn)
         username,passwd,task = conn
         # task 0 for creating new account
         # task 1 for sending money
@@ -52,7 +53,6 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
             password, first_name,
             last_name, phone_number, address)
             VALUES (%s, %s, %s, %s, %s, %s)"""
-            print(userinfo)
             cursor.execute(sql_query, tuple(userinfo))
             conndb.commit()
             return None
@@ -67,7 +67,7 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
         if not return_query:
             self.send("error 404")
             return None
-        
+
         available_balance = return_query[0][2]
         self.send("ok")
 
@@ -77,7 +77,8 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
             sql_query = """SELECT * FROM accounts WHERE username=%s"""
             cursor.execute(sql_query,(sendtouser,))
             result_query = cursor.fetchall()
-            # TODO :> implement a transaction history table here that updates every
+            # TODO :> implement a transaction history table 
+            #here that updates every
             # transaction into a table in the mariadb server 
             if len(result_query) == 0:
                 self.send("incorrect username")
@@ -93,9 +94,16 @@ class ThreadedTCPRequestHandler(socketserver.BaseRequestHandler):
             sql_query = """UPDATE accounts SET balance = balance - %s
             WHERE username = %s"""
             cursor.execute(sql_query, ( amt , username))
+            sql_query = """INSERT INTO transaction(trans_id, from_user
+            ,to_user, amount, trans_time, trans_date)
+            VALUES(%s, %s, %s, %s, %s, %s)"""
+            import uuid, datetime
+            trans_id = str(uuid.uuid4())[:32]
+            trans_time = datetime.datetime.utcnow()
+            cursor.execute(sql_query, (trans_id, username, sendtouser, 
+                amt, trans_time.time(), trans_time.date()))
             conndb.commit()
-            sql_query = """"""
-            self.send("successful")
+            self.send(f"successful, id : {trans_id}")
             return None
 
         if(task == "2"):
@@ -119,7 +127,31 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 if __name__ == "__main__":
     # Port 0 means to select an arbitrary unused port
     HOST, PORT = "localhost", 0
-    server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
+    if sys.argv[1] == "--setup":
+        # running setup script
+        conndb = mysql.connector.connect(
+                host = "localhost",
+                user = "lunchspider",
+                password = "archi",
+                )
+        cursor = conndb.cursor()
+        sql_query = """
+        CREATE DATABASE IF NOT EXISTS nobank;
+        USE nobank;
+        CREATE TABLE IF NOT EXISTS  accounts(
+            username char(45) NOT NULL PRIMARY KEY,
+            password varchar(50) NOT NULL,
+            balance bigint(20) UNSIGNED,
+            first_name varchar(26),
+            last_name varchar(15),
+            phone_number char(15),
+            address varchar(100)
+        );
+        """
+        cursor.execute(sql_query)
+        conndb.commit()
+
+    server = ThreadedTCPServer((HOST, PORT), ClientHandler)
     with server:
         ip, port = server.server_address
         print(ip,port)
@@ -130,5 +162,6 @@ if __name__ == "__main__":
         # Exit the server thread when the main thread terminates
         server_thread.daemon = True
         server_thread.start()
+        print("run --startup first to run the script")
         print("Server loop running in thread:", server_thread.name)
         server.serve_forever()
